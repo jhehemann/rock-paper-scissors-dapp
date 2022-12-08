@@ -13,5 +13,5 @@ Falls man über die Remix IDE auf den Smart Contract und die ABI zugreifen oder 
 - CloneFactory: 0x3a056b5922e4a9F1F1E6b4F61627b2609f8FE9Ad
 
 ### Co-Autoren
-Jannik Hehemann (https://github.com/jhehemann)
-Dominik Bepple
+- Jannik Hehemann (https://github.com/jhehemann)
+- Dominik Bepple
