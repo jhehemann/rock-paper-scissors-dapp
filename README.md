@@ -8,7 +8,7 @@ Um das Spiel spielen zu können, müssen die Dateien im Repository heruntergelad
 
 Falls man über die Remix IDE auf den Smart Contract und die ABI zugreifen oder die DApp gegebenenfalls weiterentwickeln möchte, sollte man zunächst den Code der Dokumente CloneFactory.sol und RockPaperScissors.sol in der Remix IDE kompilieren. Als nächstes muss zunächst der RockPaperScissorsGame Contract deployt und anschließend die erzeugte Adresse beim Deployment des RockPaperScissorsFactory Contracts als Parameter für den Konstruktor mitgegeben werden. Die Adressen für die Smart Contracts sind nachfolgend aufgelistet:
 
-•	RockPaperScissorsFactory: 0xBB73D808cFFBb76b46C0Fc4aBEB8D72d4510996a
-•	RockPaperScissorsGame: 0x90fD0DAc2e4b566752bC6963B6A93817AC4219fc
-•	CloneFactory: 0x3a056b5922e4a9F1F1E6b4F61627b2609f8FE9Ad
+- RockPaperScissorsFactory: 0xBB73D808cFFBb76b46C0Fc4aBEB8D72d4510996a
+- RockPaperScissorsGame: 0x90fD0DAc2e4b566752bC6963B6A93817AC4219fc
+- CloneFactory: 0x3a056b5922e4a9F1F1E6b4F61627b2609f8FE9Ad
 
