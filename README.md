@@ -1,7 +1,7 @@
 # rock-paper-scissors-dapp
 ## Entwicklung des Spiels "Rock, Paper, Scissors" als dApp auf der Ropsten Blockchain in der Sprache Solidity.
 
-Installationsanleitung
+### Installationsanleitung
 Für die Installation werden die Dateien im GitHub-Repository https://github.com/jhehemann/rock-paper-scissors-dapp, sowie ein Metamask Account mit ausreichend Ether auf der Ropsten Blockchain benötigt.
 
 Um das Spiel spielen zu können, müssen die Dateien im Repository heruntergeladen werden. Anschließend navigiert man über die Konsole in den entsprechenden Ordner und führt die Datei server.js mit dem Befehl „node server.js“ aus. Nun kann über einen Browser die Adresse localhost:3000 aufgerufen werden. Die Weboberfläche des Spiels wird geladen und es öffnet sich das Metamask Plug-in. Nach erfolgreicher Anmeldung bei Metamask, kann das Spiel gespielt werden.
