@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+	<!-- web3.js is eine Conveniance-Library, die die RPC-Aufrufe wrappt -->
+
+	<script>
+		//Hier stehen alle Anweisungen, die beim Laden der Oberfläche ausgeführt werden sollen
+		window.addEventListener("load", (event) => {
+
+			if (window.ethereum) {
+				//Addresse des Factory-Contracts, aus dem die Game-Proxys hervorgehen
+				var FactoryAddress = "0xBB73D808cFFBb76b46C0Fc4aBEB8D72d4510996a";
+
+				var sender
+				ethereum.request({ method: 'eth_requestAccounts' }).then(function (res) {
+					sender = res[0];
+					accounts = res;
+					document.getElementById("sender").innerHTML = sender;
+					window.web3 = new Web3(window.ethereum);
+					document.getElementById("sender").innerHTML = sender;
+					//Handhabung der internen Accountwechsel
+					//Der Account (Sender von Transaktionen) wird neu gesetzt
+					//Es wird geprüft, ob bereits ein laufendes Spiel existiert und dementsprechend wird der Button für die Spieloberfläche freigeschaltet
+					window.ethereum.on('accountsChanged', function (accounts) {
+						sender = accounts[0];
+						document.getElementById("sender").innerHTML = sender;
+						document.getElementById("Suche").innerHTML = "";
+						if (address_contract !== '0x0000000000000000000000000000000000000000') {
+							document.getElementById('Spielbereich_Button').disabled = false;
+						}
+
+
+					});
+
+					//Funktion zur Handhabung des Timers für die Reveal-Phase
+					function startRevealTimer(duration, display) {
+						var timer = duration, minutes, seconds;
+						var x = setInterval(function () {
+							minutes = parseInt(timer / 60, 10);
+							seconds = parseInt(timer % 60, 10);
+
+							minutes = minutes < 10 ? "0" + minutes : minutes;
+							seconds = seconds < 10 ? "0" + seconds : seconds;
+
+							display.textContent = minutes + ":" + seconds;
+
+							if (--timer < 0) {
+								timer = duration;
+								clearInterval(x);
+								document.getElementById("revealEnd").innerHTML = "ZEIT FÜR REVEALPHASE ABGELAUFEN! \n Sie können nun den Gewinner ermitteln und auszahlen lassen.";
+							}
+						}, 1000);
+					}
+
+
+					//Funktion zur Handhabung des Timers für die Reveal-Phase
+					function startPlayTimer(duration, display) {
+						var timer = duration, minutes, seconds;
+						var x = setInterval(function () {
+							minutes = parseInt(timer / 60, 10);
+							seconds = parseInt(timer % 60, 10);
+
+							minutes = minutes < 10 ? "0" + minutes : minutes;
+							seconds = seconds < 10 ? "0" + seconds : seconds;
+
+							display.textContent = minutes + ":" + seconds;
+
+							if (--timer < 0) {
+								timer = duration;
+								clearInterval(x);
+								document.getElementById("playEnd").innerHTML = "ZEIT FÜR SPIELPHASE ABGELAUFEN! \n Sie können nun ihren Einsatz zurückholen, falls ihr Gegenspieler noch nicht gespielt hat.";
+							}
+						}, 1000);
+					}
+
+					// ABI der notwendigen Contracts
+					var Factory_ABI =
+						[
+							{
+								"inputs": [
+									{
+										"internalType": "uint256",
+										"name": "newBet",
+										"type": "uint256"
+									}
+								],
+								"name": "adjustBet",
+								"outputs": [],
+								"stateMutability": "nonpayable",
+								"type": "function"
+							},
+							{
+								"inputs": [
+									{
+										"internalType": "uint256",
+										"name": "newFee",
+										"type": "uint256"
+									}
+								],
+								"name": "adjustFee",
+								"outputs": [],
+								"stateMutability": "nonpayable",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "destroy",
+								"outputs": [],
+								"stateMutability": "nonpayable",
+								"type": "function"
+							},
+							{
+								"inputs": [
+									{
+										"internalType": "address",
+										"name": "_gamecontract",
+										"type": "address"
+									}
+								],
+								"stateMutability": "nonpayable",
+								"type": "constructor"
+							},
+							{
+								"anonymous": false,
+								"inputs": [
+									{
+										"indexed": false,
+										"internalType": "address",
+										"name": "game",
+										"type": "address"
+									}
+								],
+								"name": "Game",
+								"type": "event"
+							},
+							{
+								"inputs": [],
+								"name": "startGame",
+								"outputs": [],
+								"stateMutability": "payable",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "withdrawFees",
+								"outputs": [],
+								"stateMutability": "nonpayable",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "bet",
+								"outputs": [
+									{
+										"internalType": "uint256",
+										"name": "",
+										"type": "uint256"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "fee",
+								"outputs": [
+									{
+										"internalType": "uint256",
+										"name": "",
+										"type": "uint256"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "getBalance",
+								"outputs": [
+									{
+										"internalType": "uint256",
+										"name": "balance",
+										"type": "uint256"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "PublicGame",
+								"outputs": [
+									{
+										"internalType": "address",
+										"name": "",
+										"type": "address"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "queue",
+								"outputs": [
+									{
+										"internalType": "address",
+										"name": "",
+										"type": "address"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							}
+						]
+					var Game_ABI =
+						[
+							{
+								"inputs": [
+									{
+										"internalType": "address",
+										"name": "_playerA",
+										"type": "address"
+									},
+									{
+										"internalType": "address",
+										"name": "_playerB",
+										"type": "address"
+									},
+									{
+										"internalType": "uint256",
+										"name": "_bet",
+										"type": "uint256"
+									}
+								],
+								"name": "init",
+								"outputs": [],
+								"stateMutability": "nonpayable",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "pay",
+								"outputs": [],
+								"stateMutability": "nonpayable",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "payback",
+								"outputs": [],
+								"stateMutability": "nonpayable",
+								"type": "function"
+							},
+							{
+								"inputs": [
+									{
+										"internalType": "bytes32",
+										"name": "encrMove",
+										"type": "bytes32"
+									}
+								],
+								"name": "play",
+								"outputs": [],
+								"stateMutability": "payable",
+								"type": "function"
+							},
+							{
+								"inputs": [
+									{
+										"internalType": "string",
+										"name": "clearMove",
+										"type": "string"
+									}
+								],
+								"name": "reveal",
+								"outputs": [
+									{
+										"internalType": "enum RockPaperScissorsGame.Moves",
+										"name": "",
+										"type": "uint8"
+									}
+								],
+								"stateMutability": "nonpayable",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "bet",
+								"outputs": [
+									{
+										"internalType": "uint256",
+										"name": "",
+										"type": "uint256"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "bothPlayed",
+								"outputs": [
+									{
+										"internalType": "bool",
+										"name": "",
+										"type": "bool"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "bothRevealed",
+								"outputs": [
+									{
+										"internalType": "bool",
+										"name": "",
+										"type": "bool"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "getWinner",
+								"outputs": [
+									{
+										"internalType": "string",
+										"name": "",
+										"type": "string"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "playerA",
+								"outputs": [
+									{
+										"internalType": "address",
+										"name": "",
+										"type": "address"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "playerB",
+								"outputs": [
+									{
+										"internalType": "address",
+										"name": "",
+										"type": "address"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "playTime",
+								"outputs": [
+									{
+										"internalType": "uint256",
+										"name": "",
+										"type": "uint256"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "revealTime",
+								"outputs": [
+									{
+										"internalType": "uint256",
+										"name": "",
+										"type": "uint256"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							},
+							{
+								"inputs": [],
+								"name": "winner",
+								"outputs": [
+									{
+										"internalType": "address",
+										"name": "",
+										"type": "address"
+									}
+								],
+								"stateMutability": "view",
+								"type": "function"
+							}
+						]
+					//Initialisierung des Factory-Contracts innerhalb von Web3
+					var Factory = new web3.eth.Contract(Factory_ABI, FactoryAddress);
+					var ServiceFee;
+					var Bet;
+					//Gebühr aktualisieren
+					Factory.methods.fee().call(function (err, res) {
+						document.getElementById('Fee').innerHTML = 'Servicegebühr: ' + res + ' Wei.';
+						ServiceFee = res;
+					});
+					//Einsatz aktualisieren
+					Factory.methods.bet().call(function (err, res) {
+						document.getElementById('Bet').innerHTML = 'Einsatz: ' + res + ' Wei.';
+						Bet = res;
+					});
+					//Deklaration der Adresse unseres Game-Proxys
+					var address_contract;
+					//Deklaration der Timer für Reveal-/ und Spielphase
+					var revealTime;
+					var playTime;
+
+
+					document.getElementById("Join_Button").addEventListener("click", (e) => {
+						//Spieler registriert sich und zahlt die Servicegebühr
+						Factory.methods.startGame().send({ from: sender, value: ServiceFee }).then(function (err, res) {
+							document.getElementById("Suche").innerHTML = "Spielersuche läuft...";
+
+						});
+						//Abfangen des Events, das die Addresse des Game-Proxys emittiert
+						Factory.events.Game({ fromBlock: 'latest' }, function (error, event) {
+							console.log(event.returnValues.game);
+							address_contract = event.returnValues.game;
+							//Freischaltung des Spielbereichs, falls ein Game-Proxy vorhanden ist
+							if (address_contract !== '0x0000000000000000000000000000000000000000') {
+								document.getElementById("Gefunden").innerHTML = "Spiel gefunden! \n Sie können nun den Spielbereich laden.";
+								document.getElementById('Spielbereich_Button').disabled = false;
+								console.log("Spiel beigetreten");
+								console.log(address_contract);
+							}
+
+
+						})
+
+
+					});
+
+
+					//Deklaration des Contracts unseres Game-Proxys
+					var contract_game;
+
+					//Spieler muss den Spielbereich laden, damit
+					document.getElementById("Spielbereich_Button").addEventListener("click", (e) => {
+
+
+						//Initialisierung des Game-Proxy Contracts innerhalb von Web3
+						contract_game = new web3.eth.Contract(Game_ABI, address_contract);
+						console.log("Spiel erfolgreich geladen")
+						console.log(address_contract)
+						document.getElementById('Game').style.display = "block";
+
+						//Anzeige der beiden Mitspieler
+						contract_game.methods.playerA().call(function (err, res) {
+							document.getElementById("Spieler1").value = res;
+						});
+
+						contract_game.methods.playerB().call(function (err, res) {
+							document.getElementById("Spieler2").value = res;
+						});
+
+
+
+					});
+
+					//Funktion zur Teilnahme am Spiel, die Wahl wird innerhalb von Web3 automatisch gehasht und dem Smart-Contract übergeben
+					document.getElementById("Commit_Button").addEventListener("click", async (e) => {
+
+						var wahl = document.getElementById("wahl").value;
+						var passwort = document.getElementById("ed_password").value;
+
+						const msgUint8 = new TextEncoder().encode(wahl + passwort);                   // als (utf-8) Uint8Array codieren
+						const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);           // Hashen der Nachricht
+						const hashArray = Array.from(new Uint8Array(hashBuffer));                     // Konvertiere den Buffer in ein Byte-Array
+						const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');    // Bytes in Hex-String umwandeln
+
+
+						// Der Spieler muss hier den Einsatz überweisen und nimmt am Spiel teil
+
+						contract_game.methods.play("0x" + hash).send({ from: sender, value: Bet }).then(function (res) {
+							console.log("Hash wurde veröffentlicht")
+							if (playTime == null) {
+								playTime = 60 * 5,
+									display = document.querySelector('#time_commit');
+								startPlayTimer(playTime, display);
+							}
+						});
+					});
+
+					// Einsatz zurückzahlen, falls Spielzeit abgelaufen und der Gegenspieler nicht gespielt hat
+
+					document.getElementById("Payback_Button").addEventListener("click", (e) => {
+
+						contract_game.methods.payback().send({ from: sender }).then(function (res) {
+							document.getElementById("gameEnd").innerHTML = "SPIEL WURDE BEENDET. Für ein neues Spiel, bitte Seite neu laden.";
+						});
+					});
+
+
+					// Hier werden die Werte (aktuelle Wahl und Salt/Passwort) aus den Eingabefeldern genommen und an den Contract als Reveal gesendet
+					document.getElementById("Reveal_Button").addEventListener("click", async (e) => {
+
+						var wahl = document.getElementById("wahl").value;
+						var passwort = document.getElementById("ed_password").value;
+
+						//Mit dem Erhalt des ersten Reveals beginnt der Countdown für die Revealphase von 5 Minuten
+						contract_game.methods.reveal(wahl + passwort).send({ from: sender }).then(function (res) {
+							console.log("Die Wahl wurde veröffentlicht")
+							if (revealTime == null) {
+								revealTime = 60 * 5,
+									display = document.querySelector('#time_reveal');
+								startRevealTimer(revealTime, display);
+							}
+
+						});
+					});
+					//Anzeige des ersten Spielers
+					document.getElementById("Spieler1_Button").addEventListener("click", (e) => {
+						contract_game.methods.playerA().call(function (err, res) {
+							document.getElementById("Spieler1").value = res;
+						});
+					});
+					//Anzeige des zweiten Spielers
+					document.getElementById("Spieler2_Button").addEventListener("click", (e) => {
+						contract_game.methods.playerB().call(function (err, res) {
+							document.getElementById("Spieler2").value = res;
+						});
+					});
+					//Anzeige, die das Ende der Commitphase einsehen lässt
+					document.getElementById("Beide_Gespielt").addEventListener("click", (e) => {
+						contract_game.methods.bothPlayed().call(function (err, res) {
+							document.getElementById("Gespielt").value = res.toString();
+						});
+					});
+					//Anzeige, die das Ende der Revealphase einsehen lässt
+					document.getElementById("Beide_Revealt").addEventListener("click", (e) => {
+						contract_game.methods.bothRevealed().call(function (err, res) {
+							document.getElementById("Revealt").value = res.toString();
+						});
+					});
+
+
+					//Hier wird der Gewinner ermittelt
+					document.getElementById("Winner_Button").addEventListener("click", (e) => {
+
+						contract_game.methods.getWinner().call(function (err, res) {
+							console.log(res);
+							var winner = res;
+							if (winner.toString() !== 'Unentschieden') {
+								document.getElementById("winner").innerHTML = "Gewonnen hat: " + winner.toString() + "\n Das Spiel ist nun beendet und der Gewinn kann nun ausgezahlt werden.";
+							} else {
+								document.getElementById("winner").innerHTML = "Es steht Unentschieden!" + "\n Das Spiel ist nun beendet und der Einsatz kann nun zurückgezahlt werden.";
+							}
+							document.getElementById('Auszahlung_Button').disabled = false;
+
+						})
+
+					});
+                    // Auszahlung des Gewinns bei einem klaren Sieg oder Auszahlung des Einsatzes
+					document.getElementById("Auszahlung_Button").addEventListener("click", (e) => {
+
+						contract_game.methods.pay().send({ from: sender }).then(function (res) {
+							console.log("Auszahlung erhalten")
+							document.getElementById("end").innerHTML = "Der Einsatz/Gewinn wurde ausgezahlt. Bitte Seite neu laden, um ein neues Spiel zu starten.";
+
+					})
+				});
+
+					//Folgende Funktionen können nur vom Eigentümer des Factory-Contracts ausgeführt werden
+
+					//Anzeige der gesammelten Service-Gebühren des Factory-Contracts
+					document.getElementById("Balance_Button").addEventListener("click", (e) => {
+						web3.eth.getBalance("0xBB73D808cFFBb76b46C0Fc4aBEB8D72d4510996a").then(ret_val => {
+
+
+							document.getElementById("ed_balance").value = ret_val;
+						});
+					});
+
+
+					document.getElementById("ServiceFee_Button").addEventListener("click", async (e) => {
+
+						var newFee = document.getElementById("ServiceFee").value;
+
+						//Mit dem Erhalt des ersten Reveals beginnt der Countdown für die Revealphase von 5 Minuten
+						Factory.methods.adjustFee(newFee).send({ from: sender }).then(function (res) {
+							console.log("Die Gebühr wurde angepasst")
+							document.getElementById('Fee').innerHTML = 'Servicegebühr: ' + newFee + ' Wei.';
+							ServiceFee = newFee;
+
+
+						});
+					});
+
+
+					document.getElementById("Bet_Button").addEventListener("click", async (e) => {
+
+						var newBet = document.getElementById("GameBet").value;
+
+						//Mit dem Erhalt des ersten Reveals beginnt der Countdown für die Revealphase von 5 Minuten
+						Factory.methods.adjustFee(newBet).send({ from: sender }).then(function (res) {
+							console.log("Der Einsatz wurde angepasst")
+							document.getElementById('Bet').innerHTML = 'Einsatz: ' + newBet + ' Wei.';
+							Bet = newBet;
+
+						});
+					});
+
+					//Abhenbung der gesammelten Service-Gebühren des Factory-Contracts
+					document.getElementById("Abhebung_Button").addEventListener("click", (e) => {
+
+						Factory.methods.withdrawFees().send({ from: sender }).then(function (res) {
+						});
+					});
+					//Zerstörung des Factory-Contracts
+					document.getElementById("Selfdestruct").addEventListener("click", (e) => {
+						Factory.methods.destroy().send({ from: sender }).then(function (res) {
+							console.log("Kontrakt zerstören")
+						})
+					});
+
+
+				});
+
+
+} else {
+	return false;
+}
+
+
+})
+
+	</script>
+</head>
+
+<body>
+	<h1>Rock Paper Scissor Game</h1>
+
+	<div>Aktueller Account: </div>
+	<div id="sender"></div>
+
+	<br>
+
+	<label for="text" id="Fee"> Servicegebühr: </label>
+
+	<br>
+	<br>
+
+	<label for="text"> Spiel beitreten: </label>
+
+
+
+	<button type="button" id="Join_Button"> Loslegen! </button>
+	<br>
+	<br>
+	<div id="Suche"></div>
+	<br>
+	<div id="Gefunden"></div>
+	<br>
+	<h2> Spielbereich </h2>
+
+	<label for="text"> Spielbereich laden: </label>
+	<button type="button" id="Spielbereich_Button" disabled="true"> Spielbereich laden </button>
+	<div id="ArenaAdresse"> </div>
+
+
+	<div id="Game" style="display:none;">
+
+		<br>
+
+		<label for="text" id="Bet"> Einsatz: </label>
+		<br>
+		<p>SPIELREGELN:</p>
+		<p> Jeder Teilnehmer wählt einen Zug und ein Passwort.
+			Sie senden den Hash der verketteten Zeichenfolge an den Contract, der ihn speichert.
+			Wenn die beiden Spieler ihre Züge ausgeführt haben, verraten sie, was sie gespielt haben.
+			Dazu senden sie ihren Zug und ihr Passwort unverschlüsselt.
+			Der Contract überprüft, ob der Hash der empfangenen Eingabe mit dem gespeicherten übereinstimmt.
+			Zwischen den Schritten kann der Spieler immer wieder prüfen, ob beide ihre Wahl getroffen bzw.
+			veröffentlicht haben.
+			Wenn beide Spieler ihren Zug aufgedeckt haben, kann der Gewinner bestimmt werden. Danach kann sich der Gewinner auszahlen lassen
+			und der Contract schickt ihm/ihr den gesamten Wettpool.
+			Bei einem Unentschieden erhält jeder Spieler seinen Einsatz zurück.
+			Das Spiel wird zurückgesetzt und kann von neuen Spielern erneut gespielt werden.
+
+		</p>
+
+		<h4> Eingabe </h4>
+
+		<label for="wahl">Wahl:</label>
+		<select id="wahl" name="wahl">
+			<option value="1"> Rock </option>
+			<option value="2"> Paper </option>
+			<option value="3"> Scissors </option>
+		</select>
+
+		<label for="wahl">Passwort:</label>
+		<input type="text" id="ed_password" placeholder="Bitte Eingeben" size="50">
+
+
+		<br>
+
+		<button type="button" id="Commit_Button">Wahl hashen und versenden</button>
+
+		<br>
+
+		<div>Commit Phase endet in <span id="time_commit">05:00</span> Minuten!</div>
+		<br>
+		<p id="playEnd"></p>
+
+		<button type="button" id="Payback_Button">Einsatz zurückzahlen</button>
+		<br>
+		<p id="gameEnd"></p>
+		<br>
+
+		<button type="button" id="Reveal_Button">Wahl veröffentlichen</button>
+
+		<br>
+		<div>Reveal Phase endet in <span id="time_reveal">05:00</span> Minuten!</div>
+		<br>
+		<p id="revealEnd"></p>
+
+		<h4> Werte abfragen </h4>
+
+		<button type="button" id="Spieler1_Button"> Addresse Spieler A </button>
+		<input type="text" id="Spieler1" placeholder="Spieler 1" size="80" readonly>
+
+		<br>
+
+		<button type="button" id="Spieler2_Button"> Addresse Spieler B </button>
+		<input type="text" id="Spieler2" placeholder="Spieler 2" size="80" readonly>
+
+
+		<br>
+		<button type="button" id="Beide_Gespielt"> Beide Gespielt? </button>
+		<input type="text" id="Gespielt" placeholder="False/True">
+
+		<br>
+		<button type="button" id="Beide_Revealt"> Beide Revealt? </button>
+		<input type="text" id="Revealt" placeholder="False/True">
+
+		<br>
+
+		<br>
+
+		<button type="button" id="Winner_Button"> Gewinner ermitteln </button>
+		<div id="winner"></div>
+		<br>
+		<button type="button" id="Auszahlung_Button" disabled="true"> Auszahlung </button>
+		<div id="end"></div>
+		<br>
+	</div>
+
+
+
+	<h2> Adminbereich </h2>
+
+	<button type="button" id="Balance_Button"> Balance Contract </button>
+	<input type="text" id="ed_balance" placeholder="Betrag in Wei">
+
+	<br>
+	<button type="button" id="ServiceFee_Button"> Servicegebühr anpassen </button>
+	<input type="text" id="ServiceFee" placeholder="Bitte Betrag in Wei eingeben" size="50">
+	<br>
+	<button type="button" id="Bet_Button"> Einsatz anpassen </button>
+	<input type="text" id="GameBet" placeholder="Bitte Betrag in Wei eingeben" size="50">
+	<br>
+	<button type="button" id="Abhebung_Button"> Geld abheben </button>
+	<br>
+	<br>
+	<button type="button" id="Selfdestruct"> Spiel zerstören</button>
+
+
+
+</body>
+
+</html>
