@@ -12,3 +12,5 @@ Falls man über die Remix IDE auf den Smart Contract und die ABI zugreifen oder 
 - RockPaperScissorsGame: 0x90fD0DAc2e4b566752bC6963B6A93817AC4219fc
 - CloneFactory: 0x3a056b5922e4a9F1F1E6b4F61627b2609f8FE9Ad
 
+### Co-Autoren
+Dominik Bepple
